@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	log "github.com/platform9/nodeadm/pkg/logrus"
 	executil "github.com/platform9/nodeadm/utils/exec"
 
@@ -29,25 +33,41 @@ var nodeCmdJoin = &cobra.Command{
 			}
 		}
 		apis.SetJoinDefaults(config)
+		if err := apis.SetJoinDynamicDefaults(config); err != nil {
+			log.Fatalf("Failed to set dynamic defaults: %v", err)
+		}
+
+		if errors := apis.ValidateJoin(config); len(errors) > 0 {
+			log.Error("Failed to validate configuration:")
+			for i, err := range errors {
+				log.Errorf("%v: %v", i, err)
+			}
+			os.Exit(1)
+		}
+
+		nodeConfig, err := yaml.Marshal(config.NodeConfiguration)
+		if err != nil {
+			log.Fatalf("\nFailed to marshal node config with err %v", err)
+		}
+		err = ioutil.WriteFile(constants.KubeadmConfig, nodeConfig, constants.Read)
+		if err != nil {
+			log.Fatalf("\nFailed to write file %q with error %v", constants.KubeadmConfig, err)
+		}
+
 		utils.InstallNodeComponents(config)
-		kubeadmJoin(cmd.Flag("token").Value.String(),
-			cmd.Flag("master").Value.String(),
-			cmd.Flag("cahash").Value.String())
+		kubeadmJoin()
 	},
 }
 
-func kubeadmJoin(token, master, cahash string) {
-	cmd := exec.Command(filepath.Join(constants.BaseInstallDir, "kubeadm"), "join", "--ignore-preflight-errors=all", "--token", token, master, "--discovery-token-ca-cert-hash", cahash)
-	err := executil.LogRun(cmd)
-	if err != nil {
-		log.Fatalf("failed to run %q: %s", strings.Join(cmd.Args, " "), err)
+func kubeadmJoin() {
+	cmd := exec.Command(filepath.Join(constants.BaseInstallDir, "kubeadm"), "join", "--ignore-preflight-errors=all", fmt.Sprintf("--config=%s", constants.KubeadmConfig))
+	log.Infof("Running %q", strings.Join(cmd.Args, " "))
+	if err := executil.LogRun(cmd); err != nil {
+		log.Fatalf("%q failed: %s", strings.Join(cmd.Args, " "), err)
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(nodeCmdJoin)
 	nodeCmdJoin.Flags().String("cfg", "", "Location of configuration file")
-	nodeCmdJoin.Flags().String("token", "", "kubeadm token to be used for kubeadm join")
-	nodeCmdJoin.Flags().String("master", "", "masterIP:masterPort for the master to join")
-	nodeCmdJoin.Flags().String("cahash", "", "CA hash")
 }

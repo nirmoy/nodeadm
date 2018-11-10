@@ -37,7 +37,16 @@ func SetInitDynamicDefaults(config *InitConfiguration) error {
 
 // SetJoinDefaults sets defaults on the configuration used by join
 func SetJoinDefaults(config *JoinConfiguration) {
-	SetNetworkingDefaults(&config.Networking)
+}
+
+// SetJoinDynamicDefaults sets defaults derived at runtime
+func SetJoinDynamicDefaults(config *JoinConfiguration) error {
+	nodeName, err := constants.GetHostnameOverride()
+	if err != nil {
+		return fmt.Errorf("unable to dervice hostname override: %v", err)
+	}
+	config.NodeConfiguration.NodeRegistration.Name = nodeName
+	return nil
 }
 
 // SetNetworkingDefaults sets defaults for the network configuration

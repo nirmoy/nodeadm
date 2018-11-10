@@ -19,8 +19,7 @@ type InitConfiguration struct {
 
 // JoinConfiguration specifies the configuration used by the join command
 type JoinConfiguration struct {
-	Networking Networking                                 `json:"networking"`
-	Kubelet    *kubeletconfigv1beta1.KubeletConfiguration `json:"kubelet"`
+	NodeConfiguration kubeadmv1alpha2.NodeConfiguration `json:"nodeConfiguration"`
 }
 
 // VIPConfiguration specifies the parameters used to provision a virtual IP

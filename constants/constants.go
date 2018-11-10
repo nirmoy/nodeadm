@@ -69,16 +69,6 @@ const (
 
 var CNIPluginsFilename = fmt.Sprintf("cni-plugins-amd64-%s.tgz", CNIVersion)
 
-const (
-	// TODO(dlipovetsky) Move fields to configuration
-	KubeletEvictionHard                 = "memory.available<600Mi,nodefs.available<10%"
-	NodeadmKubeletSystemdDropinFilename = "20-nodeadm.conf"
-	NodeadmKubeletSystemdDropinTemplate = `[Service]
-Environment="KUBELET_DNS_ARGS=--cluster-dns={{ .ClusterDNS }} --cluster-domain={{ .ClusterDomain }}"
-Environment="KUBELET_EXTRA_ARGS=--max-pods={{ .MaxPods }} --fail-swap-on={{ .FailSwapOn }} --hostname-override={{ .HostnameOverride }} --kube-api-qps={{ .KubeAPIQPS }} --kube-api-burst={{ .KubeAPIBurst }} --feature-gates={{ .FeatureGates}} --eviction-hard={{ .EvictionHard }} --cpu-manager-policy={{ .CPUManagerPolicy }} --kube-reserved={{ .KubeReservedCPU }}"
-`
-)
-
 func GetHostnameOverride() (string, error) {
 	defaultIP, err := netutil.ChooseHostInterface()
 	if err != nil {
