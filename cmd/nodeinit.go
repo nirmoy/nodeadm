@@ -67,30 +67,22 @@ var nodeCmdInit = &cobra.Command{
 }
 
 func networkInit(config *apis.InitConfiguration) {
-	file := filepath.Join(constants.CacheDir, constants.FlannelDirName, constants.FlannelManifestFilename)
-	podSubnetCIDR := config.MasterConfiguration.Networking.PodSubnet
-	if len(podSubnetCIDR) == 0 {
-		if value, ok := config.MasterConfiguration.ControllerManagerExtraArgs[constants.ControllerManagerClusterCIDRKey]; ok {
-			podSubnetCIDR = value
-		}
-	}
-	log.Infof("Pod network %s", podSubnetCIDR)
-	manifestStr := utils.Substitute(file, constants.DefaultPodNetwork, podSubnetCIDR)
-
 	cmd := exec.Command(constants.Sysctl, "net.bridge.bridge-nf-call-iptables=1")
 	err := cmd.Run()
 	if err != nil {
 		log.Fatalf("failed to run %q: %s", strings.Join(cmd.Args, " "), err)
 	}
 
+	manifest, err := os.Open(filepath.Join(constants.CacheDir, constants.FlannelDirName, constants.FlannelManifestFilename))
+	if err != nil {
+		log.Fatalf("failed to open network backend manifest (%q): %s", strings.Join(cmd.Args, " "), err)
+	}
 	cmd = exec.Command(filepath.Join(constants.BaseInstallDir, "kubectl"), fmt.Sprintf("--kubeconfig=%s", constants.AdminKubeconfigFile), "apply", "-f", "-")
-	reader := strings.NewReader(manifestStr)
-	cmd.Stdin = reader
+	cmd.Stdin = manifest
 	err = cmd.Run()
 	if err != nil {
 		log.Fatalf("failed to run %q: %s", strings.Join(cmd.Args, " "), err)
 	}
-
 }
 
 func kubeadmInit(config string) {

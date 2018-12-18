@@ -10,11 +10,6 @@ import (
 
 // SetInitDefaults sets defaults on the configuration used by init
 func SetInitDefaults(config *InitConfiguration) {
-	// First set Networking defaults
-	SetNetworkingDefaults(&config.Networking)
-	// Second set MasterConfiguration.Networking defaults
-	SetMasterConfigurationNetworkingDefaultsWithNetworking(config)
-	// Third use the remainder of MasterConfiguration defaults
 	kubeadmv1alpha2.SetDefaults_MasterConfiguration(&config.MasterConfiguration)
 	config.MasterConfiguration.Kind = "MasterConfiguration"
 	config.MasterConfiguration.APIVersion = "kubeadm.k8s.io/v1alpha2"
@@ -47,33 +42,6 @@ func SetJoinDynamicDefaults(config *JoinConfiguration) error {
 	}
 	config.NodeConfiguration.NodeRegistration.Name = nodeName
 	return nil
-}
-
-// SetNetworkingDefaults sets defaults for the network configuration
-func SetNetworkingDefaults(netConfig *Networking) {
-	if netConfig.ServiceSubnet == "" {
-		netConfig.ServiceSubnet = constants.DefaultServiceSubnet
-	}
-	if netConfig.DNSDomain == "" {
-		netConfig.DNSDomain = constants.DefaultDNSDomain
-	}
-}
-
-// SetMasterConfigurationNetworkingDefaultsWithNetworking sets defaults with
-// values from the top-level network configuration
-func SetMasterConfigurationNetworkingDefaultsWithNetworking(config *InitConfiguration) {
-	if config.MasterConfiguration.Networking.ServiceSubnet == "" {
-		config.MasterConfiguration.Networking.ServiceSubnet = config.Networking.ServiceSubnet
-	}
-	// If MasterConfigurationNetworking.PodSubnet is provided directly, it takes precedence
-	if config.MasterConfiguration.Networking.PodSubnet == "" {
-		// Set controller manager extra args directly because of the issue
-		// https://github.com/kubernetes/kubeadm/issues/724
-		setControllerManagerExtraArgs(config)
-	}
-	if config.MasterConfiguration.Networking.DNSDomain == "" {
-		config.MasterConfiguration.Networking.DNSDomain = config.Networking.DNSDomain
-	}
 }
 
 func addOrAppend(extraArgs *map[string]string, key string, value string) {
