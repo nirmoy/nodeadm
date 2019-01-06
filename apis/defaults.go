@@ -5,10 +5,19 @@ import (
 
 	"github.com/platform9/nodeadm/constants"
 	kubeadmv1alpha1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
+	kubeadmscheme "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/scheme"
+	kubeletconfigv1beta1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1beta1"
+	kubeproxyconfigv1alpha1 "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/v1alpha1"
 )
 
 // SetInitDefaults sets defaults on the configuration used by init
 func SetInitDefaults(config *InitConfiguration) {
+	if config.Kubelet == nil {
+		config.Kubelet = &kubeletconfigv1beta1.KubeletConfiguration{}
+	}
+	if config.KubeProxy == nil {
+		config.Kubelet = &kubeproxyconfigv1alpha1.KubeProxyConfiguration{}
+	}
 	// First set Networking defaults
 	SetNetworkingDefaults(&config.Networking)
 	// Second set MasterConfiguration.Networking defaults
@@ -22,6 +31,11 @@ func SetInitDefaults(config *InitConfiguration) {
 	addOrAppend(&config.MasterConfiguration.APIServerExtraArgs, "feature-gates", constants.FeatureGates)
 	addOrAppend(&config.MasterConfiguration.ControllerManagerExtraArgs, "feature-gates", constants.FeatureGates)
 	addOrAppend(&config.MasterConfiguration.SchedulerExtraArgs, "feature-gates", constants.FeatureGates)
+	scheme, _, _ := kubeadmscheme.NewSchemeAndCodecs()
+	if scheme != nil {
+		scheme.Default(config.Kubelet)
+	}
+
 }
 
 // SetInitDynamicDefaults sets defaults derived at runtime
